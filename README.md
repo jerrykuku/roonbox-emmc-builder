@@ -103,3 +103,7 @@ cd /home/edwin/pkgbuild/roonbox-emmc-builder
 
 - 目前默认启用的是更适合这类 x86 ROCK 设备的 `MMC/SDHCI/CQHCI` 路线
 - `dw_mmc` 没有默认启用，因为这两套原厂 x86 内核树里的该驱动主要受 `ARM/ARM64/...` 或 `COMPILE_TEST` 约束，不适合作为这份镜像的正式运行配置
+
+## License
+
+This project is distributed under the GNU General Public License Version 3.
