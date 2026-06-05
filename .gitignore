@@ -1,0 +1,7 @@
+dist/
+*.img
+*.img.gz
+*.sha256
+*.efi
+config-*-original
+config-*-emmc-from-original
