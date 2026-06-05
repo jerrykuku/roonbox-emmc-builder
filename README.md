@@ -4,6 +4,11 @@
 
 Convert the original `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz` into a Roon ROCK image with eMMC support.
 
+## Why
+
+The stock Roon ROCK recovery image assumes SATA/NVMe-style storage and does not properly support many eMMC-based x86 devices.
+This project rebuilds the recovery and installed kernels, patches the installer and userspace scripts, and repacks the image so eMMC devices can be detected and used as install targets.
+
 ## Features
 
 The script automates the full workflow:
@@ -102,6 +107,22 @@ Successful runs typically produce:
 - `*.sha256`
 - Two rebuilt kernels based on the original vendor config
 - Two final `.config` files
+
+## Capacity Notes
+
+The installer uses adaptive partition sizing for smaller eMMC devices:
+
+- about 43 GiB and above: `16 GiB + 16 GiB + remaining`
+- about 22 GiB and above: `8 GiB + 8 GiB + remaining`
+- about 12 GiB and above: `4 GiB + 4 GiB + remaining`
+- below about 12 GiB: installation is rejected as too small
+
+## Limitations
+
+- This project targets the specific Roon ROCK factory-reset image layout used by `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz`
+- The current kernel changes focus on x86 eMMC paths such as `MMC/SDHCI/CQHCI`
+- Very small eMMC devices are not supported
+- Build output images and rebuilt kernels are intentionally kept out of git
 
 ## License
 

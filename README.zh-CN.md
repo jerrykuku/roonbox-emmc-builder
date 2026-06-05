@@ -4,6 +4,11 @@
 
 把原版 `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz` 转换成支持 eMMC 的 Roon ROCK 镜像。
 
+## 这个项目解决什么问题
+
+原版 Roon ROCK 恢复镜像主要按 SATA/NVMe 存储路径设计，很多带 eMMC 的 x86 设备在安装阶段无法被正确识别。
+这个项目会重建恢复环境和已安装系统使用的内核，修补安装器与用户态脚本，并重新封装镜像，让 eMMC 设备能够被识别并作为安装目标使用。
+
 ## 功能
 
 脚本会自动完成下面这些工作：
@@ -102,6 +107,22 @@ cd roonbox-emmc-builder
 - `*.sha256`
 - 基于原厂配置重建的两份内核
 - 两份最终 `.config`
+
+## 容量说明
+
+安装器现在会根据 eMMC 容量自适应调整分区大小：
+
+- 约 43 GiB 及以上：`16 GiB + 16 GiB + 剩余`
+- 约 22 GiB 及以上：`8 GiB + 8 GiB + 剩余`
+- 约 12 GiB 及以上：`4 GiB + 4 GiB + 剩余`
+- 小于约 12 GiB：直接判定容量过小，不支持安装
+
+## 限制
+
+- 这个项目面向 `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz` 这一类特定的 Roon ROCK 恢复镜像结构
+- 当前内核改动主要覆盖 x86 平台常见的 `MMC/SDHCI/CQHCI` 路径
+- 容量过小的 eMMC 设备不在支持范围内
+- 构建产物和重建出来的内核默认不会提交到 git
 
 ## License
 
