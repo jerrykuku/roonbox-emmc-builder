@@ -9,15 +9,18 @@ DEFAULT_INPUT="${REPO_DIR}/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz"
 DEFAULT_WORKDIR="/tmp/roonbox-emmc-builder"
 DEFAULT_KERNEL_ROOT="/tmp/kernelbuild"
 DEFAULT_DIST_DIR="${PROJECT_DIR}/dist"
+DEFAULT_OFFICIAL_IMAGE_URL="https://download.roonlabs.net/builds/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz"
 JOBS=$(nproc)
 
 INPUT_IMAGE="${DEFAULT_INPUT}"
 WORKDIR="${DEFAULT_WORKDIR}"
 KERNEL_ROOT="${DEFAULT_KERNEL_ROOT}"
 DIST_DIR="${DEFAULT_DIST_DIR}"
+OFFICIAL_IMAGE_URL="${DEFAULT_OFFICIAL_IMAGE_URL}"
 KEEP_WORK=0
 FORCE_REBUILD=0
 FAST_MODE=0
+DOWNLOAD_OFFICIAL=0
 OUTPUT_PREFIX=""
 
 KERNEL_5_VER="5.15.72"
@@ -42,11 +45,13 @@ Build a Roon ROCK eMMC-enabled image from the original factory-reset image.
 
 Options:
   -i, --input <path>         Source .img.gz or .img
+  -u, --official-url <url>   Official image URL (default: ${DEFAULT_OFFICIAL_IMAGE_URL})
   -o, --output-prefix <path> Output prefix without .img/.gz suffix
   -w, --workdir <path>       Working directory (default: ${DEFAULT_WORKDIR})
   -k, --kernel-root <path>   Kernel source cache/build root (default: ${DEFAULT_KERNEL_ROOT})
   -d, --dist-dir <path>      Output directory for artifacts (default: ${DEFAULT_DIST_DIR})
   -j, --jobs <n>             Parallel build jobs (default: nproc)
+      --download-official    Download the official image from Roon before building
       --fast                 Skip kernel extraction/build and reuse cached kernel artifacts
       --keep-work            Keep working directory after success
       --force-rebuild        Rebuild kernels even if cached outputs already exist
@@ -54,8 +59,8 @@ Options:
 
 Example:
   $(basename "$0") \\
-    --input /home/edwin/pkgbuild/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz \\
-    --output-prefix /home/edwin/pkgbuild/roonbox-emmc-builder/dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
+    --download-official \\
+    --output-prefix ./dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
 EOF
 }
 
@@ -67,6 +72,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -o|--output-prefix)
             OUTPUT_PREFIX="$2"
+            shift 2
+            ;;
+        -u|--official-url)
+            OFFICIAL_IMAGE_URL="$2"
             shift 2
             ;;
         -w|--workdir)
@@ -91,6 +100,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --fast)
             FAST_MODE=1
+            shift
+            ;;
+        --download-official)
+            DOWNLOAD_OFFICIAL=1
             shift
             ;;
         --force-rebuild)
@@ -121,8 +134,8 @@ trap cleanup EXIT
 
 require_tools() {
     local tools=(
-        awk bzip2 cpio curl fdisk file find gzip make mcopy mdir mksquashfs
-        perl rg sed sha256sum strings tar unsquashfs xz yes
+        awk bzip2 cpio curl fdisk file find grep gzip make mcopy mdir mksquashfs
+        perl sed sha256sum strings tar unsquashfs xz yes
     )
     local tool
     for tool in "${tools[@]}"; do
@@ -154,6 +167,19 @@ prepare_dirs() {
 }
 
 normalize_input() {
+    local source_name
+
+    if [[ ${DOWNLOAD_OFFICIAL} -eq 1 ]]; then
+        local downloaded_image
+        source_name=$(basename "${OFFICIAL_IMAGE_URL%%\?*}")
+        downloaded_image="${SRC_DIR}/official-factoryreset.img.gz"
+        log "Downloading official image from ${OFFICIAL_IMAGE_URL}"
+        curl -L --fail --output "${downloaded_image}" "${OFFICIAL_IMAGE_URL}"
+        INPUT_IMAGE="${downloaded_image}"
+    else
+        source_name=$(basename "${INPUT_IMAGE}")
+    fi
+
     [[ -f "${INPUT_IMAGE}" ]] || die "Input image not found: ${INPUT_IMAGE}"
 
     case "${INPUT_IMAGE}" in
@@ -173,10 +199,10 @@ normalize_input() {
 
     if [[ -z "${OUTPUT_PREFIX}" ]]; then
         local base
-        base=$(basename "${INPUT_IMAGE}")
+        base="${source_name}"
         base=${base%.gz}
         base=${base%.img}
-        OUTPUT_PREFIX="${DIST_DIR}/${base}-emmc-originalconfig"
+        OUTPUT_PREFIX="${DIST_DIR}/${base}-emmc"
     fi
 
     OUTPUT_IMG="${OUTPUT_PREFIX}.img"
@@ -298,7 +324,7 @@ patch_installer_init() {
     local mode
     mode=$(stat -c '%a' "${file}")
 
-    if ! rg -q 'get_partprefix\(\)' "${file}"; then
+    if ! grep -q 'get_partprefix()' "${file}"; then
         awk '
             $0 == "DISKS=\"\"" {
                 print "get_partprefix() {"
@@ -338,11 +364,11 @@ patch_installer_init() {
 
     sed -i 's|for i in /sys/block/sd\* /sys/block/nvme\*; do|for i in /sys/block/sd* /sys/block/nvme* /sys/block/mmcblk*; do|g' "${file}"
 
-    if ! rg -q 'PARTPREFIX=\$\(get_partprefix "\$INSTALLDISK"\)' "${file}"; then
+    if ! grep -q 'PARTPREFIX=$(get_partprefix "$INSTALLDISK")' "${file}"; then
         sed -i '/INSTALLDISK=\/dev\/\$INSTALLDISK/i\    PARTPREFIX=$(get_partprefix "$INSTALLDISK")' "${file}"
     fi
 
-    if ! rg -q 'compute_partition_sizes' "${file}"; then
+    if ! grep -q 'compute_partition_sizes' "${file}"; then
         die "Failed to inject compute_partition_sizes into installer init"
     fi
 
@@ -358,21 +384,21 @@ patch_installer_init() {
     sed -i 's|sgdisk -n 2::+16GB $INSTALLDISK|sgdisk -n 2::+${OS_MIB}M $INSTALLDISK|g' "${file}"
     sed -i 's|sgdisk -n 3::+16GB $INSTALLDISK|sgdisk -n 3::+${APP_MIB}M $INSTALLDISK|g' "${file}"
 
-    rg -q 'mmcblk' "${file}" || die "Failed to patch installer init"
+    grep -q 'mmcblk' "${file}" || die "Failed to patch installer init"
 }
 
 patch_profile_platform() {
     local file="$1"
     perl -0pi -e "s/grep nvme /grep -E 'nvme|mmcblk' /g" "${file}"
-    rg -q 'nvme\|mmcblk' "${file}" || die "Failed to patch profile.platform"
+    grep -q 'nvme\|mmcblk' "${file}" || die "Failed to patch profile.platform"
 }
 
 patch_mdev_conf() {
     local file="$1"
-    if ! rg -q '^mmcblk\[0-9\]p\[0-9\]' "${file}"; then
+    if ! grep -q '^mmcblk\[0-9\]p\[0-9\]' "${file}"; then
         perl -0pi -e 's|(nvme\[0-9\]n\[0-9\]p\[0-9\]\s+root:root 660 ! \*/roon/sys/storage/automount\.sh\n)|$1mmcblk[0-9]p[0-9]      root:root 660 ! */roon/sys/storage/automount.sh\n|' "${file}"
     fi
-    rg -q '^mmcblk\[0-9\]p\[0-9\]' "${file}" || die "Failed to patch mdev.conf"
+    grep -q '^mmcblk\[0-9\]p\[0-9\]' "${file}" || die "Failed to patch mdev.conf"
 }
 
 patch_automount() {
@@ -381,7 +407,7 @@ patch_automount() {
     local mode
     mode=$(stat -c '%a' "${file}")
 
-    if ! rg -q 'partition_to_disk\(\)' "${file}"; then
+    if ! grep -q 'partition_to_disk()' "${file}"; then
         awk '
             $0 == "exec 1> >(exec logger -t storage/automount.sh) 2>&1" {
                 print
@@ -439,13 +465,13 @@ patch_automount() {
     chmod "${mode}" "${tmp}"
     mv "${tmp}" "${file}"
 
-    rg -q 'mmcblk' "${file}" || die "Failed to patch automount.sh"
+    grep -q 'mmcblk' "${file}" || die "Failed to patch automount.sh"
 }
 
 patch_format_internal_storage() {
     local file="$1"
     perl -0pi -e "s/grep nvme /grep -E 'nvme|mmcblk' /g" "${file}"
-    rg -q 'nvme\|mmcblk' "${file}" || die "Failed to patch format_internal_storage"
+    grep -q 'nvme\|mmcblk' "${file}" || die "Failed to patch format_internal_storage"
 }
 
 rebuild_installer_initramfs() {
@@ -498,14 +524,14 @@ verify_output() {
     copy_from_image "${OUTPUT_IMG}" "${EFI_OFFSET}" "::bzImage.efi" "${verify_outer}"
     copy_from_image "${OUTPUT_IMG}" "${EFI_OFFSET}" "::install-os.tar" "${verify_tar}"
 
-    rg -a -q "${KERNEL_5_VER}" "${verify_outer}" || die "Outer kernel verification failed"
+    grep -a -q "${KERNEL_5_VER}" "${verify_outer}" || die "Outer kernel verification failed"
     tar -xf "${verify_tar}" -C "${VERIFY_DIR}" ./A/bzImage.efi ./A/rootfs.img
-    rg -a -q "${KERNEL_6_VER}" "${VERIFY_DIR}/A/bzImage.efi" || die "Inner kernel verification failed"
+    grep -a -q "${KERNEL_6_VER}" "${VERIFY_DIR}/A/bzImage.efi" || die "Inner kernel verification failed"
 
-    unsquashfs -cat "${verify_rootfs}" etc/profile.platform | rg -q 'nvme\|mmcblk' || die "profile.platform patch missing"
-    unsquashfs -cat "${verify_rootfs}" etc/mdev.conf | rg -q '^mmcblk\[0-9\]p\[0-9\]' || die "mdev.conf patch missing"
-    unsquashfs -cat "${verify_rootfs}" roon/sys/storage/automount.sh | rg -q 'partition_to_disk|mmcblk' || die "automount.sh patch missing"
-    unsquashfs -cat "${verify_rootfs}" roon/sys/roonconfig/format_internal_storage | rg -q 'nvme\|mmcblk' || die "format_internal_storage patch missing"
+    unsquashfs -cat "${verify_rootfs}" etc/profile.platform | grep -q 'nvme\|mmcblk' || die "profile.platform patch missing"
+    unsquashfs -cat "${verify_rootfs}" etc/mdev.conf | grep -q '^mmcblk\[0-9\]p\[0-9\]' || die "mdev.conf patch missing"
+    unsquashfs -cat "${verify_rootfs}" roon/sys/storage/automount.sh | grep -Eq 'partition_to_disk|mmcblk' || die "automount.sh patch missing"
+    unsquashfs -cat "${verify_rootfs}" roon/sys/roonconfig/format_internal_storage | grep -q 'nvme\|mmcblk' || die "format_internal_storage patch missing"
 }
 
 main() {

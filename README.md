@@ -44,7 +44,7 @@ Required tools:
 - `mksquashfs`
 - `make`
 - `perl`
-- `rg`
+- `grep`
 - `strings`
 
 You also need a working kernel build environment, including compiler, linker, and common kernel build dependencies.
@@ -56,6 +56,12 @@ Run from the repository directory:
 ```bash
 cd roonbox-emmc-builder
 ./build-image.sh
+```
+
+Download the original image directly from Roon and build from it:
+
+```bash
+./build-image.sh --download-official
 ```
 
 Default input image:
@@ -70,6 +76,13 @@ Default output directory:
 ./dist/
 ```
 
+Default output file naming keeps the original image basename and appends `-emmc`:
+
+```text
+./dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc.img
+./dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc.img.gz
+```
+
 ## Common Usage
 
 Specify input image and output prefix:
@@ -77,6 +90,23 @@ Specify input image and output prefix:
 ```bash
 ./build-image.sh \
   --input /path/to/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz \
+  --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
+```
+
+Download from the official Roon URL and write to a custom output prefix:
+
+```bash
+./build-image.sh \
+  --download-official \
+  --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
+```
+
+Download from a custom official mirror URL:
+
+```bash
+./build-image.sh \
+  --download-official \
+  --official-url https://download.roonlabs.net/builds/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz \
   --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
 ```
 
@@ -89,10 +119,12 @@ If the kernels are already cached and you only want to rebuild the image quickly
 ## Options
 
 ```text
+--official-url <url>    Set the official Roon image URL
 --workdir <path>        Set the temporary working directory
 --kernel-root <path>    Set the kernel source cache directory
 --dist-dir <path>       Set the output directory
 --jobs <n>              Set parallel build jobs
+--download-official     Download the official image from Roon before building
 --fast                  Skip kernel extraction/build and reuse cached kernels and configs in dist/
 --keep-work             Keep the temporary working directory
 --force-rebuild         Force rebuilding both kernels

@@ -44,7 +44,7 @@
 - `mksquashfs`
 - `make`
 - `perl`
-- `rg`
+- `grep`
 - `strings`
 
 还需要完整的内核编译环境，例如编译器、链接器和常见 kernel build 依赖。
@@ -56,6 +56,12 @@
 ```bash
 cd roonbox-emmc-builder
 ./build-image.sh
+```
+
+直接从 Roon 官方地址下载原版镜像并构建：
+
+```bash
+./build-image.sh --download-official
 ```
 
 默认输入镜像：
@@ -70,6 +76,13 @@ cd roonbox-emmc-builder
 ./dist/
 ```
 
+默认输出文件名会保持原版镜像的基础名称，并追加 `-emmc`：
+
+```text
+./dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc.img
+./dist/roonbox-linuxx64-nuc4-usb-factoryreset-emmc.img.gz
+```
+
 ## 常用命令
 
 指定输入镜像和输出前缀：
@@ -77,6 +90,23 @@ cd roonbox-emmc-builder
 ```bash
 ./build-image.sh \
   --input /path/to/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz \
+  --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
+```
+
+从 Roon 官方地址下载并输出到自定义前缀：
+
+```bash
+./build-image.sh \
+  --download-official \
+  --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
+```
+
+如果需要改用自定义官方下载地址：
+
+```bash
+./build-image.sh \
+  --download-official \
+  --official-url https://download.roonlabs.net/builds/roonbox-linuxx64-nuc4-usb-factoryreset.img.gz \
   --output-prefix /path/to/output/roonbox-linuxx64-nuc4-usb-factoryreset-emmc
 ```
 
@@ -89,10 +119,12 @@ cd roonbox-emmc-builder
 ## 参数
 
 ```text
+--official-url <url>    指定官方镜像下载地址
 --workdir <path>        指定临时工作目录
 --kernel-root <path>    指定内核源码缓存目录
 --dist-dir <path>       指定输出目录
 --jobs <n>              指定内核编译并行度
+--download-official     构建前先从 Roon 官方地址下载镜像
 --fast                  跳过内核提取和编译，直接复用 dist/ 中缓存好的内核与配置
 --keep-work             保留中间工作目录
 --force-rebuild         强制重编两套内核
