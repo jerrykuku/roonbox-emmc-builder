@@ -149,6 +149,41 @@ The installer uses adaptive partition sizing for smaller eMMC devices:
 - about 12 GiB and above: `4 GiB + 4 GiB + remaining`
 - below about 12 GiB: installation is rejected as too small
 
+## Tested Hardware
+
+The following devices have been tested successfully with the generated eMMC-enabled image:
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://shop.zimaspace.com/collections/zima-products-family/products/zimaboard-832-2021-special-edition">
+        <img src="https://shop.zimaspace.com/cdn/shop/products/zimaboard-832-2021-special-edition-186318.jpg?v=1702679896" alt="ZimaBoard 832" width="320">
+      </a>
+      <br>
+      <strong>ZimaBoard 832</strong>
+      <br>
+      Intel Celeron N3450 · 8 GB RAM · 32 GB eMMC
+      <br>
+      Tested: ROCK install and boot confirmed
+      <br>
+      <a href="https://shop.zimaspace.com/collections/zima-products-family/products/zimaboard-832-2021-special-edition">Buy / Product Page</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://shop.zimaspace.com/products/zimaboard2-single-board-server">
+        <img src="https://shop.zimaspace.com/cdn/shop/files/ZimaBoard_2_home_server_match_week_bonus.png?v=1780918624" alt="ZimaBoard2 832" width="320">
+      </a>
+      <br>
+      <strong>ZimaBoard2 832</strong>
+      <br>
+      Intel Processor N150 · 8 GB RAM · 32 GB eMMC
+      <br>
+      Tested: ROCK install and boot confirmed
+      <br>
+      <a href="https://shop.zimaspace.com/products/zimaboard2-single-board-server">Buy / Product Page</a>
+    </td>
+  </tr>
+</table>
+
 ## Limitations
 
 - This project targets the specific Roon ROCK factory-reset image layout used by `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz`

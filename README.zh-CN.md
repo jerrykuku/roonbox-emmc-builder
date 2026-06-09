@@ -149,6 +149,41 @@ cd roonbox-emmc-builder
 - 约 12 GiB 及以上：`4 GiB + 4 GiB + 剩余`
 - 小于约 12 GiB：直接判定容量过小，不支持安装
 
+## 已测试设备
+
+下面这些设备已经实际测试通过，可使用本项目生成的 eMMC 版镜像完成安装与启动：
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <a href="https://shop.zimaspace.com/collections/zima-products-family/products/zimaboard-832-2021-special-edition">
+        <img src="https://shop.zimaspace.com/cdn/shop/products/zimaboard-832-2021-special-edition-186318.jpg?v=1702679896" alt="ZimaBoard 832" width="320">
+      </a>
+      <br>
+      <strong>ZimaBoard 832</strong>
+      <br>
+      Intel Celeron N3450 · 8 GB RAM · 32 GB eMMC
+      <br>
+      测试结果：ROCK 安装和启动均已确认正常
+      <br>
+      <a href="https://shop.zimaspace.com/collections/zima-products-family/products/zimaboard-832-2021-special-edition">购买链接 / 产品页面</a>
+    </td>
+    <td align="center" width="50%">
+      <a href="https://shop.zimaspace.com/products/zimaboard2-single-board-server">
+        <img src="https://shop.zimaspace.com/cdn/shop/files/ZimaBoard_2_home_server_match_week_bonus.png?v=1780918624" alt="ZimaBoard2 832" width="320">
+      </a>
+      <br>
+      <strong>ZimaBoard2 832</strong>
+      <br>
+      Intel Processor N150 · 8 GB RAM · 32 GB eMMC
+      <br>
+      测试结果：ROCK 安装和启动均已确认正常
+      <br>
+      <a href="https://shop.zimaspace.com/products/zimaboard2-single-board-server">购买链接 / 产品页面</a>
+    </td>
+  </tr>
+</table>
+
 ## 限制
 
 - 这个项目面向 `roonbox-linuxx64-nuc4-usb-factoryreset.img.gz` 这一类特定的 Roon ROCK 恢复镜像结构
